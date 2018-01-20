@@ -1,0 +1,73 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+```{r initialize the playground,echo = FALSE}
+packages.used=c("data.table", 
+                "dplyr", 
+                "plyr",
+                "tidytext",
+                "tm",
+                "readxl",
+                "wordcloud",
+                "lubridate")
+
+# check packages that need to be installed.
+packages.needed=setdiff(packages.used, 
+                        intersect(installed.packages()[,1], 
+                                  packages.used))
+# install additional packages
+if(length(packages.needed)>0){
+  install.packages(packages.needed, dependencies = TRUE)
+}
+
+# load packages
+library(data.table)
+library(dplyr)
+library(plyr)
+library(tidytext)
+library(tm)
+library(readxl)
+library(wordcloud)
+library(lubridate)
+```
+
++ this file needs for the analysis of the diff parties and different years
++ the key point is to create the functions to subset the dataset automatically by the factor I choose
++ then I can just apply the functions I wrote in wordcloud file
+
++ 01192018 Ming Li
+
+```{r}
+load("data/20180119.RData")
+```
+
+So here I will use the dates and general.info file
+
+Combine them with the original text file, we may find something
+
+```{r general.info}
+unique.party <- unique(general.info$Party)
+unique.party
+summary(as.numeric(general.info$Words))
+unique.president <- unique(general.info$President)
+length(unique.president)
+```
+So from the general.info file, we can see that there are 6 values for party and 40 individuals for president.
+
+The maximum of speech words is 8460 and the minmum is 135. So we can create two factors to analyse: the party to whom the presidents belong, and the words of their speech.
+
+```{r dates}
+head(dates)
+
+attr.name <- colnames(dates)[-1]
+id.vars <- colnames(dates)[1]
+melt.dates <- melt(dates, variable.name = id.vars, measure.vars = attr.name)
+melt.dates <- data.table(melt.dates)
+melt.dates$value <- mapvalues(melt.dates$value, from = "", to = NA)
+melt.dates <- melt.dates[which(is.na(melt.dates$value) ==  F)]
+
+```
+

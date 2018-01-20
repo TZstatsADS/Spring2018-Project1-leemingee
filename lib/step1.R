@@ -4,7 +4,7 @@ library(xlsx)
 library(data.table)
 library(readxl)
 
-dates <- fread("/Users/wanrenzhifeng/Git-leemingee/1/Spring2018-Project1-leemingee/data/InauguationDates.txt")
+dates <- fread("/Users/wanrenzhifeng/Git-leemingee/1/Spring2018-Project1-leemingee/data/InauguationDates.txt", stringsAsFactors = F)
 
 general.info <- read_xlsx("/Users/wanrenzhifeng/Git-leemingee/1/Spring2018-Project1-leemingee/data/InaugurationInfo.xlsx")
 
