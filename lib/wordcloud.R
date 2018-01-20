@@ -11,17 +11,13 @@ content.p <- TermDocumentMatrix(contents,
                                                removeNumbers = TRUE, 
                                                bounds = list(local = c(3, Inf))))
 
-
-
 myTdm <- as.matrix(content.p)
 FreqMat <- data.frame(Term = rownames(myTdm), 
                       Freqence = rowSums(myTdm), 
                       row.names = NULL)
 FreqMat <- FreqMat[order(FreqMat$Freqence), ]
 
-
 library(wordcloud)
-
 wordcloud(FreqMat$Term, FreqMat$Freqence, min.freq = 1,
           max.words=200, random.order=FALSE, rot.per=0.35, 
           colors=brewer.pal(8, "Dark2"))
@@ -97,7 +93,7 @@ write.csv(FreqMat.total, file = "data/splited.authors.csv")
 
 library(wordcloud)
 wordcloud.by.factor <- function(factor.vec){
-  FreqMat <- subset(FreqMat.total, name == factor.vec[i])
+  FreqMat <- subset(FreqMat.total, name == factor.vec)
   wordcloud(FreqMat$Term, FreqMat$Freqence, min.freq = 2,
             max.words=200, random.order=FALSE, rot.per=0.35,
             colors=brewer.pal(8, "Dark2"))
