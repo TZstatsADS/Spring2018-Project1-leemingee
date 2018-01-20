@@ -21,4 +21,6 @@ the reference during the process:
 To be honest, I admitted that the tm package may be faster and more powerful, but the tidytext package are more easy to learn and to implement.
 
 ###### 01202018
-Also, the packages like topicmodels, tidytext are all build under R version 3.4.2 or 3.4.3
+Also, the packages like topicmodels, tidytext are all build under R version 3.4.2
+
+I merge the two datasets and get four properties can be used for logistic regression or classification.

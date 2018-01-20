@@ -4,7 +4,7 @@ output:
   html_document:
     df_print: paged
 ---
-```{r initialize the playground,echo = FALSE}
+```{r initialize the playground,echo = FALSE, warning=FALSE}
 packages.used=c("data.table", 
                 "dplyr", 
                 "plyr",
@@ -12,7 +12,12 @@ packages.used=c("data.table",
                 "tm",
                 "readxl",
                 "wordcloud",
-                "lubridate")
+                "lubridate",
+                "DT", 
+                "Hmisc", 
+                "stringr",
+                "ngram"
+                )
 
 # check packages that need to be installed.
 packages.needed=setdiff(packages.used, 
@@ -32,6 +37,14 @@ library(tm)
 library(readxl)
 library(wordcloud)
 library(lubridate)
+library(DT)
+library(Hmisc)
+library(stringr)
+library(ngram)
+library(DT)
+# library(rJava)
+# library(qdap)
+# todo, there's some error loading the rjava lib
 ```
 
 + this file needs for the analysis of the diff parties and different years
@@ -41,33 +54,107 @@ library(lubridate)
 + 01192018 Ming Li
 
 ```{r}
-load("data/20180119.RData")
+load("../data/20180119.RData")
 ```
 
 So here I will use the dates and general.info file
 
-Combine them with the original text file, we may find something
+Combine them with the original text file, we may find something. Also, from the basic analyse, there is one missing value of words for the Mr.Trump's speech. As this dataset has not so many samples, I need to fill this blank also.
 
 ```{r general.info}
+general.info <- data.table(general.info)
+general.info <- general.info[order(President, Term), ]
+
+# for the missing value of Words
+general.info[, `:=`(Words, 
+                    mapvalues(x = Words, from = Words,
+                              to = as.numeric(unique(general.info$Words))))]
+missing.words.president <- general.info$President[which(is.na(general.info$Words) == 1)]
+trump <- list.files(path = "../data/InauguralSpeeches/", pattern = "*Trump*")
+trump <- readLines(paste("../data/InauguralSpeeches/", trump, sep = ""))
+general.info[President == missing.words.president,]$Words <-  sum(wordcount(trump), na.rm = T)
+general.info[, `:=`(Words, 
+                    mapvalues(x = Words, from = Words,
+                              to = as.numeric(unique(general.info$Words))))]
+
+# find the unique party and unique president name
 unique.party <- unique(general.info$Party)
 unique.party
 summary(as.numeric(general.info$Words))
 unique.president <- unique(general.info$President)
 length(unique.president)
+datatable(general.info)
 ```
 So from the general.info file, we can see that there are 6 values for party and 40 individuals for president.
 
 The maximum of speech words is 8460 and the minmum is 135. So we can create two factors to analyse: the party to whom the presidents belong, and the words of their speech.
 
 ```{r dates}
-head(dates)
-
+datatable(dates)
 attr.name <- colnames(dates)[-1]
 id.vars <- colnames(dates)[1]
 melt.dates <- melt(dates, variable.name = id.vars, measure.vars = attr.name)
 melt.dates <- data.table(melt.dates)
 melt.dates$value <- mapvalues(melt.dates$value, from = "", to = NA)
 melt.dates <- melt.dates[which(is.na(melt.dates$value) ==  F)]
+colnames(melt.dates) <- c("President", "Term", "year")
+melt.dates[, `:=`(year, mapvalues(x = year, from = year, 
+                                   to = as.numeric(year(mdy(year)))))]
+melt.dates[, `:=`(Term, mapvalues(x = Term, from = unique(melt.dates$Term),
+                                  to = seq(1:4)))]
 
+melt.dates <- melt.dates[order(President, Term), ]
+summary(as.numeric(melt.dates$year))
+# length(unique(melt.dates$value))
+year.gap <- seq(min(as.numeric(melt.dates$year)),
+                max(as.numeric(melt.dates$year)),
+                by = 4*6)
+year.gap <- c(year.gap[-c(1, length(year.gap))], 2000, 2017)
+melt.dates[, `:=`(year_bracket, cut2(x = as.numeric(year), cuts = year.gap))]
+datatable(melt.dates)
+```
+Here I organize the dates by the name and the president year. And ordered by the president's First name and their round.
+
+Then I add one column which is divide the years into brackets, the interval for the division is `year.gap`. The we have got one discrete variable, which can be used for classification or logistic regression.
+
+Here I have recontructed the $dates$ data.frame from the long to short. Then I wish to merge the $melt.dates$ dataset with general.info dataset to make it more clear.
+
+It's obvious that the $melt.dates$ datasets have `nrow(melt.dates)` rows. So it have more rows than the $general.info$ datasets.
+```{r merge the datas}
+# melted.data <- merge(general.info, melt.dates, 
+#                      by.x = general.info$President, 
+#                      by.y = melt.dates$President)
+unique.president.dates <- unique(melt.dates$President)
+common.presidents <- intersect(unique.president, unique.president.dates)
+mismatched.president <- unique.president[unique.president %nin% common.presidents]
+mismatched.president.dates <- unique.president.dates[unique.president.dates %nin% common.presidents]
+
+mismatched.president
+mismatched.president.dates
+```
+The $merge()$ function didn't work because the unique names for president vectors in these two datasets didn't match. So we need to clean it again.
+
+```{r clean presidents name}
+general.info[, `:=`(President, mapvalues(x = President, 
+                                     from = mismatched.president,
+                                     to = mismatched.president.dates[c(4,4,5, 6,8,10)]))]
+common.presidents2 <- intersect(general.info$President, unique.president.dates)
+mismatched.president2 <- general.info$President[general.info$President %nin% common.presidents]
+mismatched.president2
+```
+So they are all matched, there is no mismatched president names in the general.info dataset, so I can just merge it now.
+
+```{r merge}
+# general.info[, `:=`(c(year, year_bracket), melt.dates[which(President %in% common.presidents2), c(3, 4)])]
+property <- general.info
+# melt.dates.merge <- melt.dates[which(President %in% common.presidents2), ]
+# property[, `:=`(year, melt.dates[which(President %in% common.presidents2), value])]
+# property[, `:=`(year_bracket, melt.dates[which(President %in% common.presidents2), year_bracket])]
+
+property$Term <- as.character(property$Term)
+property <- merge(property, melt.dates, by = c("President", "Term"))
+datatable(property)
+# write.csv(property ,file = "../data/properties.csv")
 ```
 
+Here, I obtain 4 properties for each speech, `colnames(property)`, and these properties contain aggregate information from the file $InauguationDates.txt$ and $InaugurationInfo.xlsx$. And I can split the data based on these properties or just do a logistic regression combined with these data.
