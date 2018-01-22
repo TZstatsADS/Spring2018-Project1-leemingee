@@ -23,4 +23,7 @@ To be honest, I admitted that the tm package may be faster and more powerful, bu
 ###### 01202018
 Also, the packages like topicmodels, tidytext are all build under R version 3.4.2
 
-I merge the two datasets and get four properties can be used for logistic regression or classification.
++ I merge the two datasets and get four properties can be used for logistic regression or classification.
+
++ Searched how to generate the jpg files automatically and make each speech a wordcloud
+
